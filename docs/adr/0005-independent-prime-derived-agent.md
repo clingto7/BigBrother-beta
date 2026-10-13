@@ -1,6 +1,6 @@
 # ADR 0005: Build Big Brother as an Independent Prime-Derived Agent
 
-Status: Accepted
+Status: Accepted for the beta; superseded for the next design by ADR 0023
 
 Big Brother will be a separately launched agent built on the Prime Agent
 runtime, not a prompt-only profile and not a full runtime fork. It will have

@@ -1,8 +1,11 @@
 # Big Brother Context
 
-Big Brother is a GitHub-only, commit-oriented code-review service. It builds
-durable understanding of a watched repository and publishes review results
-back to GitHub.
+Big Brother is a repository review agent that monitors changes, maintains
+project understanding, and makes review results available to its users.
+
+Some terms below describe the v0.1.0-beta.1 implementation. ADRs 0018–0023
+define changes agreed for the next design; where they differ, the ADRs govern
+the new implementation.
 
 ## Language
 
@@ -58,13 +61,23 @@ The review of one immutable commit, including its metadata, message, message
 template requirements when present, and the change from its parent, evaluated
 against the repository's project policy and context.
 
+### Review range
+
+A bounded change from the last reviewed revision to an observed branch head
+that receives one overall review synthesis. Individual pushed commits remain
+identifiable within the range.
+
+### Review layer
+
+A distinct level of assessment within a Review range, progressing from
+verifiable requirements through project fit to implementation quality. A
+layer's reviewer supplies evidence and proposals for the final synthesis.
+
 ### Review scope
 
-The bounded set of questions a Commit Review is expected to answer. The first
-scope covers commit message and template compliance, documented project-policy
-compliance, and correctness, security, or regression issues with clear
-evidence in the commit diff. It does not include executing project code or
-installing dependencies.
+The bounded set of questions a review is expected to answer. The initial
+scope spans verifiable requirements, fit with project rules and direction,
+and implementation quality, with conclusions tied to evidence.
 
 ### Project policy
 
@@ -72,19 +85,24 @@ The repository's documented requirements for how changes should be made. It is
 distinct from the review service's runtime rules and from instructions carried
 inside a commit or source file under review.
 
+### Project direction
+
+The repository's intended trajectory, supported by repository evidence or a
+user-confirmed decision with provenance. It informs project-fit assessment;
+it is distinct from a mandatory Project policy rule.
+
 ### Commit message template
 
 A project-provided format or set of rules for commit messages. When a
 repository provides one, it is part of project policy and is checked during
-every applicable commit review.
+every applicable review.
 
 ### Canonical project context
 
 The durable understanding used to interpret a repository: its project policy,
-relevant documentation, and verified facts from the code and history. It is
-repository-wide by default, with branch-specific overlays only when a branch
-has genuinely different policy or behavior. Context supports a review; it does
-not replace evidence from the reviewed commit.
+project direction, relevant documentation, and accepted facts with provenance.
+It is repository-wide by default, with branch-specific overlays only when a
+branch has genuinely different policy or behavior.
 
 Canonical project context is the accepted, currently applicable understanding,
 not the `CONTEXT.md` glossary file and not an unreviewed Prime conversation.
@@ -96,18 +114,41 @@ runtime. A session helps Prime reason across reviews, but it is not by itself
 the authoritative record of accepted project facts. Accepted facts must have
 provenance in the Context Ledger.
 
+### Operator session
+
+An interactive, repository-scoped conversation through which a user can ask
+about review results and evidence, inspect a specified code revision, or
+request further review. It uses the same durable project understanding as
+background monitoring.
+
 ### Context Ledger
 
-The durable, service-owned history of proposed, admitted, corrected, and
-retracted repository-context facts. Each fact retains provenance and its
+The durable history of proposed, admitted, corrected, and retracted
+repository-context facts. Each fact retains provenance and its
 current status. Repository Prime adjudicates admission; Big Brother persists
 the decision so context can be reconstructed after restart.
 
 ### Repository state
 
-Big Brother's durable, service-owned state for one Repository, including
-review progress and accumulated context. Repository state is separate from the
-source repository and must remain associated with the commits that support it.
+Big Brother's durable operational state for one Repository, including review
+progress, completed results, and delivery status. It is separate from Project
+understanding assets and remains associated with the revisions it covers.
+
+### Project understanding assets
+
+The inspectable code map, project overview, and provenance-bearing context
+that Big Brother maintains for a Repository. They provide the initial and
+evolving basis for review.
+
+### Repository initialization
+
+The first construction of Project understanding assets for a newly enrolled
+Repository, based on its codebase and project documents.
+
+### Repository indexing
+
+A later, explicit recalibration of Project understanding assets after a major
+repository change. It is distinct from their incremental update during review.
 
 ### Evidence-backed fact
 
@@ -120,41 +161,39 @@ review-local conclusions.
 ### Review evidence
 
 The host-selected, provenance-carrying material used to review one fixed
-commit, such as commit metadata, the parent diff, applicable policy, and
-relevant canonical project context. Evidence is an input to the worker and
+revision or Review range, such as commit metadata, the diff, applicable policy,
+and relevant canonical project context. Evidence is an input to the worker and
 Prime; it does not grant repository content the authority to change the
 reviewer's operating rules.
 
 ### Control-plane poller
 
 The mechanical component that periodically observes the configured GitHub
-branches and creates work for newly discovered commits. It does not perform
-the review, maintain the reviewer's project understanding, or publish the
+branches and creates work for newly discovered Review ranges. It does not
+perform the review, maintain the reviewer's project understanding, or publish the
 final result.
 
 ### Watch service
 
-The continuously running Big Brother process that drives the control-plane
-poller and recovery loop. It is a foreground service whose lifecycle may be
-managed by an operating-system supervisor; it does not become a second
-repository-aware agent.
+The continuously running Big Brother service that drives branch observation
+and recovery. It does not replace the repository-aware agent's judgment.
 
 ### Review record
 
-The durable result synthesized by Repository Prime for one Commit Review,
-including its conclusion, findings, policy checks, evidence, and limitations.
-The first canonical delivery surface is an advisory GitHub Commit Status.
+The durable result synthesized by the repository's main agent for one bounded
+review, including its conclusion, findings, policy checks, evidence, and
+limitations. Delivery channels present this record to users.
 
 ### Read-only review
 
-A review that may read repository state and publish its review record, but does
-not modify files, commits, branches, or pull-request code.
+A review that may read repository state, update Project understanding assets,
+and publish its Review record, but does not modify source files, commits,
+branches, or pull-request code.
 
 ### External notification
 
 A delivery of review activity or results through a channel outside GitHub,
-such as Feishu, WeChat, Bark, ntfy, or RSS. External notifications are outside
-the first delivery boundary.
+such as Bark, Feishu, WeChat, ntfy, or RSS.
 
 ### Review execution supervisor
 
@@ -166,7 +205,7 @@ meaning of a worker result.
 ### External review evidence
 
 Provenance-carrying output from an independent review system, such as OCR,
-provided as optional input to a Commit Review. It may guide attention or
+provided as optional input to a review. It may guide attention or
 support a conclusion, but it does not define Big Brother's canonical review
 scope or directly authorize publication.
 

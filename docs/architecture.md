@@ -1,5 +1,10 @@
 # Big Brother Core Architecture
 
+> This document describes the v0.1.0-beta.1 implementation. ADRs 0018–0023
+> record the agreed next design, including range reviews, layered child agents,
+> shared project assets, and an early framework fork. The module and storage
+> contracts below are not yet that implementation.
+
 ## Design position
 
 Big Brother is an independent Prime-derived agent with a deterministic control
